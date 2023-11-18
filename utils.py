@@ -78,12 +78,11 @@ def get_list_of_stores():
             table_data = table_rows[i].find_all('div', {'class': 'table-data-cell'})
             data = [(cnt + i), region[0], table_data[0].find('a')['href'], table_data[0].text, table_data[1].text]
             all_store_list.append(data)
-        print(f"store list i => {i} = {len(table_rows)}")
         cnt += (i + 1)
-        # test
-        global store_list_data
-        store_list_data = all_store_list
-        return all_store_list
+        
+    global store_list_data
+    store_list_data = all_store_list
+    return all_store_list
 
 # get store data by date
 def get_store_data_by_date():
