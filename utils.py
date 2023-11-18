@@ -1,7 +1,11 @@
 import requests
 import xlwt
 import pathlib
+import mysql.connector
 
+import conf
+
+from mysql.connector import errorcode
 from bs4 import BeautifulSoup
 
 total_data = []
@@ -75,7 +79,7 @@ def get_list_of_stores():
             data = [(cnt + i), region[0], table_data[0].find('a')['href'], table_data[0].text, table_data[1].text]
             all_store_list.append(data)
         print(f"store list i => {i} = {len(table_rows)}")
-        cnt += i
+        cnt += (i + 1)
         # test
         global store_list_data
         store_list_data = all_store_list
@@ -118,7 +122,7 @@ def get_store_data_by_date():
                 store_data.append(data)
             else:
                 break
-        cnt += i
+        cnt += (i + 1)
     global store_data_by_date
     store_data_by_date = store_data
     return store_data_by_date
@@ -154,7 +158,7 @@ def get_store_sub_data_by_date():
                 data.append(table_td_data[i].text)
             sub_data.append(data)
         
-        cnt += j
+        cnt += (j + 1)
     
     global store_sub_data
     store_sub_data = temp_store_data_by_date
@@ -218,5 +222,23 @@ def export_csv_file():
 
 # save data in database
 def save_data_in_database():
-    
-    pass
+    cnx = None
+    try:
+        cnx = mysql.connector.connect(host=conf.DB_HOST, user=conf.DB_USER, password=conf.DB_PWD, database=conf.DB_NAME)
+        cursor = cnx.cursor()
+        cursor.execute("TRUNCATE TABLE tbl_region")
+        cursor.execute("TRUNCATE TABLE tbl_store_list")
+        cursor.execute("TRUNCATE TABLE tbl_store_data_by_date")
+        cursor.execute("TRUNCATE TABLE tbl_model_data")
+        
+        
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Something is wrong with your user name or password")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("Database does not exist")
+        else:
+            print(err)
+    finally:
+        if cnx != None:
+            cnx.close()
