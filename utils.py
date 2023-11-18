@@ -6,6 +6,9 @@ from bs4 import BeautifulSoup
 
 total_data = []
 region_list_data = []
+store_list_data = []
+store_data_by_date = []
+store_sub_data = []
 
 # send request
 def send_request(url, request_type, header, param):
@@ -38,12 +41,10 @@ def get_region_data(page_data):
     region_data = []
     child_elements = parent_element.find_all('a')
     
-    for element in child_elements:
-        data = {
-            'url': element['href'],
-            'name': element.text
-        }
+    for i in range(len(child_elements)):
+        data = [(i + 1), child_elements[i]['href'], child_elements[i].text]
         region_data.append(data)
+    
     global region_list_data
     region_list_data = region_data
     return region_data
@@ -52,111 +53,114 @@ def get_region_data(page_data):
 def get_list_of_stores():
     global region_list_data
     region_data = region_list_data
-    all_store_data = []
+    all_store_list = []
+    cnt = 0
     
     for region in region_data:
-        response = send_request(region['url'], 'get', {}, {})
+        response = send_request(region[1], 'get', {}, {})
         page_data = None
         
         if response != '':
             page_data = parse_html_to_element(response)
         else:
-            return all_store_data
+            return all_store_list
         
         table_data = page_data.find('div', {'class': 'hall-list-table'})
         table_body = table_data.find('div', {'class': 'table-body'})
         table_rows = table_body.find_all('div', {'class': 'table-row'})
         
-        sub_store_data = []
-        for element in table_rows:
-            table_data = element.find_all('div', {'class': 'table-data-cell'})
-            data = {
-                'url': table_data[0].find('a')['href'],
-                'name': table_data[0].text,
-                'city': table_data[1].text,
-                'data': []
-            }
-            sub_store_data.append(data)
-        
-        all_store_data.append({'region': region['name'], 'stores': sub_store_data})
-        global total_data
-        total_data = all_store_data
-    
-    return all_store_data
+        i = 0
+        for i in range(len(table_rows)):
+            table_data = table_rows[i].find_all('div', {'class': 'table-data-cell'})
+            data = [(cnt + i), region[0], table_data[0].find('a')['href'], table_data[0].text, table_data[1].text]
+            all_store_list.append(data)
+        print(f"store list i => {i} = {len(table_rows)}")
+        cnt += i
+        # test
+        global store_list_data
+        store_list_data = all_store_list
+        return all_store_list
 
-# get store data
+# get store data by date
 def get_store_data_by_date():
-    global total_data
-    store_list = total_data
+    global store_list_data
+    store_list = store_list_data
     
-    for stores in store_list:
-        for store in stores['stores']:
-            response = send_request(store['url'], 'get', {}, {})
-        
-            page_data = None
+    cnt = 0
+    store_data = []
+    for store in store_list:
+        response = send_request(store[2], 'get', {}, {})
+    
+        page_data = None
+        if response != '':
+            page_data = parse_html_to_element(response)
+        else:
+            continue
             
-            if response != '':
-                page_data = parse_html_to_element(response)
-            else:
+        table_data = page_data.find_all('div', {'class': 'table-row'})
+        i = 0
+        for i in range(len(table_data)):
+            if i == 0:
                 continue
             
-            store_data = []
-            table_data = page_data.find_all('div', {'class': 'table-row'})
-            
-            for i in range(len(table_data)):
-                if i == 0:
-                    continue
-                
-                table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
-                if table_cell_data[0].find('a') != None:
-                    data = {
-                        'url': table_cell_data[0].find('a')['href'],
-                        'date': table_cell_data[0].text,
-                        'total_diff': table_cell_data[1].text,
-                        'avg_diff': table_cell_data[2].text,
-                        'avg_g_num': table_cell_data[3].text,
-                        'win_rate': table_cell_data[4].text,
-                        'data': []
-                    }
-                    store_data.append(data)
-                else:
-                    break
-            
-            store['data'] = store_data
-    
-    total_data = store_list
-    return total_data
+            table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
+            if table_cell_data[0].find('a') != None:
+                data = [
+                    (cnt + i), 
+                    store[0], 
+                    table_cell_data[0].find('a')['href'],
+                    table_cell_data[0].text,
+                    table_cell_data[1].text,
+                    table_cell_data[2].text,
+                    table_cell_data[3].text,
+                    table_cell_data[4].text
+                ]
+                store_data.append(data)
+            else:
+                break
+        cnt += i
+    global store_data_by_date
+    store_data_by_date = store_data
+    return store_data_by_date
 
+# get sub data from data by date
 def get_store_sub_data_by_date():
-    global total_data
-    temp_total_data = total_data
+    global store_data_by_date
+    temp_store_data_by_date = store_data_by_date
     
-    for store_list in temp_total_data:
-        for store in store_list['stores']:
-            for store_data in store['data']:
-                response = send_request(store_data['url'], 'get', {}, {})
-        
-                page_data = None
-                if response != '':
-                    page_data = parse_html_to_element(response)
-                else:
-                    continue
-                
-                table = page_data.find('table', {'id': 'all_data_table'})
-                table_body = table.find('tbody')
-                table_row_data = table_body.find_all('tr')
-                sub_data = []
-                for row in table_row_data:
-                    table_td_data = row.find_all('td', {'class': 'table_cells'})
-                    data = []
-                    for i in range(len(table_td_data)):
-                        data.append(table_td_data[i].text)
-                    
-                    sub_data.append(data)
-                store_data['data'] = sub_data
-    total_data = temp_total_data
-    return total_data
+    cnt = 0
+    sub_data = []
+    for store_data in temp_store_data_by_date:
+        response = send_request(store_data[2], 'get', {}, {})
 
+        page_data = None
+        if response != '':
+            page_data = parse_html_to_element(response)
+        else:
+            continue
+        
+        table = page_data.find('table', {'id': 'all_data_table'})
+        table_body = table.find('tbody')
+        table_row_data = table_body.find_all('tr')
+        
+        j = 0
+        for j in range(len(table_row_data)):
+            table_td_data = table_row_data[j].find_all('td', {'class': 'table_cells'})
+            data = []
+            data.append((cnt + j))
+            data.append(store_data[0])
+            
+            for i in range(len(table_td_data)):
+                data.append(table_td_data[i].text)
+            sub_data.append(data)
+        
+        cnt += j
+    
+    global store_sub_data
+    store_sub_data = temp_store_data_by_date
+    return store_sub_data
+
+# export excel file
 def export_csv_file():
     global total_data
     temp_total_data = total_data
@@ -171,34 +175,48 @@ def export_csv_file():
         font = xlwt.Font()
         
         count = 0
-        for store_list in temp_total_data:
+        for region in region_list_data:
             font.bold = True
             font.height = 320
             style.font = font
-            sheet.write(count, 0, store_list['name'], style=style)
+            sheet.write(count, 0, region[0], style=style)
+            sheet.write(count, 1, region[2], style=style)
             count += 1
-            for store in store_list['stores']:
+            
+            for store in store_list_data:
                 font.bold = True
                 font.height = 280
                 style.font = font
-                sheet.write(count, 0, store_list['name'], style=style)
-                sheet.write(count, 1, store_list['city'], style=style)
-                count += 1
-                for store_data in store['data']:
+                if store[1] == region[0]:
+                    sheet.write(count, 0, store[0], style=style)
+                    sheet.write(count, 1, store[3], style=style)
+                    sheet.write(count, 2, store[4], style=style)
+                    count += 1
+                    
+                for store_data in store_data_by_date:
                     font.bold = True
                     font.height = 240
                     style.font = font
-                    sheet.write(count, 0, store_list['date'], style=style)
-                    sheet.write(count, 1, store_list['total_diff'], style=style)
-                    sheet.write(count, 2, store_list['avg_diff'], style=style)
-                    sheet.write(count, 3, store_list['avg_g_num'], style=style)
-                    sheet.write(count, 4, store_list['win_rate'], style=style)
-                    count += 1
-                    for store_sub_data in store_data['data']:
+                    if store_data[1] == store[0]:
+                        sheet.write(count, 0, store_data[3], style=style)
+                        sheet.write(count, 1, store_data[4], style=style)
+                        sheet.write(count, 2, store_data[5], style=style)
+                        sheet.write(count, 3, store_data[6], style=style)
+                        sheet.write(count, 4, store_data[7], style=style)
+                        count += 1
+                        
+                    for sub_data in store_sub_data:
                         font.height = 240
                         style.font = font
-                        for i in range(len(store_sub_data)):
-                            sheet.write(count, i, store_sub_data[i], style=style)
-                        count += 1
+                        if sub_data[1] == store_data[0]:
+                            for i in range(len(sub_data)):
+                                if i < (i - 2):
+                                    sheet.write(count, i, store_sub_data[i + 2], style=style)
+                            count += 1
 
-        return
+    return
+
+# save data in database
+def save_data_in_database():
+    
+    pass

@@ -48,6 +48,9 @@ class AnaSloData:
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
         
+        # save data in database
+        save_data_in_database()
+        
         return {'data': store_sub_data}
         
     def main(self):
