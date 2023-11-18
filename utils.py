@@ -1,8 +1,10 @@
 import requests
+import xlwt
+import pathlib
 
 from bs4 import BeautifulSoup
 
-store_list_data = []
+total_data = []
 region_list_data = []
 
 # send request
@@ -59,7 +61,7 @@ def get_list_of_stores():
         if response != '':
             page_data = parse_html_to_element(response)
         else:
-            return store_data
+            return all_store_data
         
         table_data = page_data.find('div', {'class': 'hall-list-table'})
         table_body = table_data.find('div', {'class': 'table-body'})
@@ -77,15 +79,15 @@ def get_list_of_stores():
             sub_store_data.append(data)
         
         all_store_data.append({'region': region['name'], 'stores': sub_store_data})
-        global store_list_data
-        store_list_data = all_store_data
+        global total_data
+        total_data = all_store_data
     
     return all_store_data
 
 # get store data
-def get_store_data():
-    global store_list_data
-    store_list = store_list_data
+def get_store_data_by_date():
+    global total_data
+    store_list = total_data
     
     for stores in store_list:
         for store in stores['stores']:
@@ -104,18 +106,99 @@ def get_store_data():
             for i in range(len(table_data)):
                 if i == 0:
                     continue
+                
                 table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
-                return table_cell_data[0]
-                data = {
-                    # 'url': table_cell_data[0].find('a')['href'],
-                    'total_diff': table_cell_data[1].text,
-                    'avg_diff': table_cell_data[2].text,
-                    'avg_g_num': table_cell_data[3].text,
-                    'win_rate': table_cell_data[4].text
-                }
-                store_data.append(data)
+                if table_cell_data[0].find('a') != None:
+                    data = {
+                        'url': table_cell_data[0].find('a')['href'],
+                        'date': table_cell_data[0].text,
+                        'total_diff': table_cell_data[1].text,
+                        'avg_diff': table_cell_data[2].text,
+                        'avg_g_num': table_cell_data[3].text,
+                        'win_rate': table_cell_data[4].text,
+                        'data': []
+                    }
+                    store_data.append(data)
+                else:
+                    break
             
             store['data'] = store_data
     
-    store_list_data = store_list
-    return store_list_data
+    total_data = store_list
+    return total_data
+
+def get_store_sub_data_by_date():
+    global total_data
+    temp_total_data = total_data
+    
+    for store_list in temp_total_data:
+        for store in store_list['stores']:
+            for store_data in store['data']:
+                response = send_request(store_data['url'], 'get', {}, {})
+        
+                page_data = None
+                if response != '':
+                    page_data = parse_html_to_element(response)
+                else:
+                    continue
+                
+                table = page_data.find('table', {'id': 'all_data_table'})
+                table_body = table.find('tbody')
+                table_row_data = table_body.find_all('tr')
+                sub_data = []
+                for row in table_row_data:
+                    table_td_data = row.find_all('td', {'class': 'table_cells'})
+                    data = []
+                    for i in range(len(table_td_data)):
+                        data.append(table_td_data[i].text)
+                    
+                    sub_data.append(data)
+                store_data['data'] = sub_data
+    total_data = temp_total_data
+    return total_data
+
+def export_csv_file():
+    global total_data
+    temp_total_data = total_data
+    document_folder = pathlib.Path.home() / "Documents"
+    filename = 'anaslo_data.xls'
+    filepath = document_folder / filename
+    
+    with open(filepath, 'wb') as file:
+        wbk = xlwt.Workbook()
+        sheet = wbk.add_sheet("sheet", cell_overwrite_ok=True)
+        style = xlwt.Style()
+        font = xlwt.Font()
+        
+        count = 0
+        for store_list in temp_total_data:
+            font.bold = True
+            font.height = 320
+            style.font = font
+            sheet.write(count, 0, store_list['name'], style=style)
+            count += 1
+            for store in store_list['stores']:
+                font.bold = True
+                font.height = 280
+                style.font = font
+                sheet.write(count, 0, store_list['name'], style=style)
+                sheet.write(count, 1, store_list['city'], style=style)
+                count += 1
+                for store_data in store['data']:
+                    font.bold = True
+                    font.height = 240
+                    style.font = font
+                    sheet.write(count, 0, store_list['date'], style=style)
+                    sheet.write(count, 1, store_list['total_diff'], style=style)
+                    sheet.write(count, 2, store_list['avg_diff'], style=style)
+                    sheet.write(count, 3, store_list['avg_g_num'], style=style)
+                    sheet.write(count, 4, store_list['win_rate'], style=style)
+                    count += 1
+                    for store_sub_data in store_data['data']:
+                        font.height = 240
+                        style.font = font
+                        for i in range(len(store_sub_data)):
+                            sheet.write(count, i, store_sub_data[i], style=style)
+                        count += 1
+
+        return

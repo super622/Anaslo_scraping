@@ -1,10 +1,14 @@
 import asyncio
+from datetime import datetime
 
 from utils import *
 
 class AnaSloData:
     def get_all_datas(self):
+        now = datetime.now()
         # get page data to get region info
+        print('==================start===============')
+        print(now.strftime("%H:%M:%S"))
         response = send_request('https://ana-slo.com/', 'get', {}, {})
         
         page_data = None
@@ -16,14 +20,35 @@ class AnaSloData:
         
         # get region info from page data
         region_data = get_region_data(page_data)
+        print('==================region data===============')
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S"))
         
         # get a list of stores in region
         store_list = get_list_of_stores()
+        print('==================store list===============')
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S"))
         
-        # get a store data 
-        store_data = get_store_data()
+        # get store data by date
+        store_data = get_store_data_by_date()
+        print('==================get store data by date===============')
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S"))
         
-        return {'data': store_data}
+        # get store sub data by date
+        store_sub_data = get_store_sub_data_by_date()
+        print('==================get store sub data by date===============')
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S"))
+        
+        # export csv file
+        export_csv_file()
+        print('==================excel export===============')
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S"))
+        
+        return {'data': store_sub_data}
         
     def main(self):
         return self.get_all_datas()
