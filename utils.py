@@ -1,3 +1,4 @@
+import pytz
 import requests
 import xlwt
 import pathlib
@@ -249,8 +250,12 @@ def get_store_sub_data_by_date():
 
 # export excel file
 def export_csv_file():
+    hour = datetime.now(pytz.timezone('Asia/Tokyo')).hour
+    minute = datetime.now(pytz.timezone('Asia/Tokyo')).minute
+    seconds = datetime.now(pytz.timezone('Asia/Tokyo')).second
+
     document_folder = pathlib.Path.home() / "Documents"
-    filename = 'anaslo_data.xls'
+    filename = f'Anaslo_data_{hour}_{minute}_{seconds}.xls'
     filepath = document_folder / filename
     
     with open(filepath, 'wb') as file:
