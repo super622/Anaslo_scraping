@@ -83,6 +83,7 @@ def get_region_data(page_data):
         data = [(i + 1), child_elements[i]['href'], child_elements[i].text]
         region_data.append(data)
         tuple_region_list_data.append(tuple(data))
+        break
     
     global region_list_data
     region_list_data = region_data
