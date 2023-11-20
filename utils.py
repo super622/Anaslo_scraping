@@ -112,9 +112,6 @@ def get_list_of_stores():
         
         i = 0
         for i in range(len(table_rows)):
-            if i == 2:
-                break
-            
             table_data = table_rows[i].find_all('div', {'class': 'table-data-cell'})
             data = [(cnt + i + 1), region[0], table_data[0].find('a')['href'], table_data[0].text, table_data[1].text]
             all_store_list.append(data)
@@ -135,6 +132,7 @@ def get_store_data_by_date(prev_date, start_date, type):
     cnt = 0
     store_data = []
     for store in store_list:
+        print(f"cur store data by date => {store[2]}")
         response = send_request(store[2], 'get', {}, {})
     
         page_data = None
@@ -149,9 +147,6 @@ def get_store_data_by_date(prev_date, start_date, type):
             table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
             if i == 0:
                 continue
-            
-            if i == 2:
-                break
             
             if type == False:
                 data_date = table_cell_data[0].text
@@ -224,10 +219,7 @@ def get_store_sub_data_by_date():
         table_row_data = table_body.find_all('tr')
         
         j = 0
-        for j in range(len(table_row_data)):
-            if j == 5:
-                break
-            
+        for j in range(len(table_row_data)):            
             table_td_data = table_row_data[j].find_all('td')
             data = []
             data.append((cnt + j + 1))
