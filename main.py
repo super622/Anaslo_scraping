@@ -10,10 +10,10 @@ class AnaSloData:
         now = datetime.now(pytz.timezone('Asia/Tokyo'))
         start_date = now - timedelta(days=1)
         start_date = start_date.strftime("%Y-%m-%d")
-        print(start_date)
         
         # get date of previous operation
         prev_date = get_date_of_previous_operation()
+        print(prev_date)
             
         # get page data to get region info
         print('==================start===============')

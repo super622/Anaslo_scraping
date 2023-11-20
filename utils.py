@@ -48,6 +48,9 @@ def get_date_of_previous_operation():
         query = """SELECT date FROM tbl_scraping_history ORDER BY id DESC LIMIT 1"""
         cursor.execute(query)
         date = cursor.fetchone()
+        if date is None or len(date) == 0:
+            return datetime(0, 0, 0)
+        
         date = date[0].strftime('%Y-%m-%d')
         prev_date = date.split('-')
         prev_date = datetime(int(prev_date[0]), int(prev_date[1]), int(prev_date[2]))
