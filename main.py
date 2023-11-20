@@ -1,11 +1,20 @@
 import asyncio
-from datetime import datetime
+import pytz
+
+from datetime import datetime, timedelta
 
 from utils import *
 
 class AnaSloData:
-    def get_all_datas(self):
-        now = datetime.now()
+    def get_all_datas(self, type):
+        now = datetime.now(pytz.timezone('Asia/Tokyo'))
+        start_date = now - timedelta(days=1)
+        start_date = start_date.strftime("%Y-%m-%d")
+        print(start_date)
+        
+        # get date of previous operation
+        prev_date = get_date_of_previous_operation()
+            
         # get page data to get region info
         print('==================start===============')
         print(now.strftime("%H:%M:%S"))
@@ -31,7 +40,9 @@ class AnaSloData:
         print(now.strftime("%H:%M:%S"))
         
         # get store data by date
-        store_data = get_store_data_by_date()
+        cur_date = start_date.split('-')
+        cur_date = datetime(int(cur_date[0]), int(cur_date[1]), int(cur_date[2]))
+        store_data = get_store_data_by_date(prev_date, cur_date, type)
         print('==================get store data by date===============')
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
@@ -42,22 +53,25 @@ class AnaSloData:
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
         
-        # export csv file
-        export_csv_file()
-        print('==================excel export===============')
-        now = datetime.now()
-        print(now.strftime("%H:%M:%S"))
+        # # export csv file
+        # export_csv_file()
+        # print('==================excel export===============')
+        # now = datetime.now()
+        # print(now.strftime("%H:%M:%S"))
         
         # save data in database
-        save_data_in_database()
+        save_data_in_database(type, start_date)
         print('==================save data ind database===============')
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
         
-        return {'data': store_sub_data}
-        
-    def main(self):
-        return self.get_all_datas()
+        return "Finished"
+    
+    def all_data(self):
+        return self.get_all_datas(True)
+    
+    def latest_data(self):
+        return self.get_all_datas(False)
     
     # def run(self):
     #     results = asyncio.run(self.main())

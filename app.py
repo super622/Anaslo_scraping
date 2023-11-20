@@ -1,3 +1,4 @@
+from multiprocessing import Process
 from flask import Flask, request
 from flask_cors import CORS
 import json
@@ -11,11 +12,18 @@ CORS(app)
 def get_root():
     return "Server is running"
 
-@app.route("/get_all_data", methods=["GET"])
-def getdata():
+@app.route("/get_all_data", methods=["POST"])
+def get_all_data():
     anaslo = AnaSloData()
-    result = anaslo.main()
-    return json.dumps(result)
+    result = anaslo.all_data()
+    return "Running"
+
+@app.route("/get_latest_data", methods=["POST"])
+def get_latest_data():
+    anaslo = AnaSloData()
+    result = anaslo.latest_data()
+    return "Running"
+
 
 def run(host, port):
     app.run(host=host, port=port)

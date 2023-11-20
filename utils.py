@@ -5,6 +5,7 @@ import mysql.connector
 
 import conf
 
+from datetime import datetime
 from mysql.connector import errorcode
 from bs4 import BeautifulSoup
 
@@ -36,7 +37,32 @@ def send_request(url, request_type, header, param):
         return response.text
     else:
         return ''
-    
+
+# get date of previous operation
+def get_date_of_previous_operation():
+    cnx = None
+    date = ''
+    try:
+        cnx = mysql.connector.connect(host=conf.DB_HOST, user=conf.DB_USER, password=conf.DB_PWD, database=conf.DB_NAME)
+        cursor = cnx.cursor()
+        query = """SELECT date FROM tbl_scraping_history ORDER BY id DESC LIMIT 1"""
+        cursor.execute(query)
+        date = cursor.fetchone()
+        date = date[0].strftime('%Y-%m-%d')
+        prev_date = date.split('-')
+        prev_date = datetime(int(prev_date[0]), int(prev_date[1]), int(prev_date[2]))
+        return prev_date
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Something is wrong with your user name or password")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("Database does not exist")
+        else:
+            print(err)
+    finally:
+        if cnx != None:
+            cnx.close()
+
 # convert html to element format
 def parse_html_to_element(html):
     soup = BeautifulSoup(html, 'html.parser')
@@ -97,7 +123,7 @@ def get_list_of_stores():
     return all_store_list
 
 # get store data by date
-def get_store_data_by_date():
+def get_store_data_by_date(prev_date, start_date, type):
     global store_list_data
     global store_data_by_date
     global tuple_store_data_by_date
@@ -117,13 +143,22 @@ def get_store_data_by_date():
         table_data = page_data.find_all('div', {'class': 'table-row'})
         i = 0
         for i in range(len(table_data)):
+            table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
             if i == 0:
                 continue
             
             if i == 2:
                 break
             
-            table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
+            if type == False:
+                data_date = table_cell_data[0].text
+                data_date = data_date.split('(')[0]
+                data_date = data_date.split('/')
+                data_date = datetime(int(data_date[0]), int(data_date[1]), int(data_date[2]))
+                
+                if start_date == prev_date or data_date < prev_date:
+                    break
+                
             if table_cell_data[0].find('a') != None:
                 data = [
                     (cnt + i + 1), 
@@ -169,8 +204,7 @@ def get_store_sub_data_by_date():
         for item in table_header.find_all('th'):
             header_item.append(item.text)
         position = 0
-        print(header_type)
-        print(header_item)
+        
         for i in range(len(header_type)):
             adjusted_index = i - position
             if 0 <= adjusted_index < len(header_item):
@@ -210,10 +244,6 @@ def get_store_sub_data_by_date():
             tuple_store_sub_data.append(tuple(data))
         
         cnt += (j + 1)
-        print(f"current store => {store_data[0]}")
-        print(f"table data => {len(table_row_data)}")
-        print(f"model data => {len(sub_data)}")
-        print(f"{store_data[2]} => {empty_position}")
         empty_position = []
     
     global store_sub_data
@@ -271,15 +301,16 @@ def export_csv_file():
     return
 
 # save data in database
-def save_data_in_database():
+def save_data_in_database(type, start_date):
     cnx = None
     try:
         cnx = mysql.connector.connect(host=conf.DB_HOST, user=conf.DB_USER, password=conf.DB_PWD, database=conf.DB_NAME)
         cursor = cnx.cursor()
-        cursor.execute("TRUNCATE TABLE tbl_region")
-        cursor.execute("TRUNCATE TABLE tbl_store_list")
-        cursor.execute("TRUNCATE TABLE tbl_store_data_by_date")
-        cursor.execute("TRUNCATE TABLE tbl_model_data")
+        if type == False:
+            cursor.execute("TRUNCATE TABLE tbl_region")
+            cursor.execute("TRUNCATE TABLE tbl_store_list")
+            cursor.execute("TRUNCATE TABLE tbl_store_data_by_date")
+            cursor.execute("TRUNCATE TABLE tbl_model_data")
 
         query = """INSERT INTO tbl_region (id, url, name) VALUES (%s, %s, %s)"""
         cursor.executemany(query, tuple_region_list_data)
@@ -295,6 +326,10 @@ def save_data_in_database():
         
         query = """INSERT INTO tbl_model_data (id, store_data_id, model_name, machine_number, g_number, extra_sheet, bb, rb, art, composite_probability, bb_probability, rb_probability, art_probability) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         cursor.executemany(query, tuple_store_sub_data)
+        cnx.commit()
+        
+        query = """INSERT INTO tbl_scraping_history (id, date) VALUES (%s, %s)"""
+        cursor.execute(query, (0, start_date))
         cnx.commit()
         
     except mysql.connector.Error as err:
