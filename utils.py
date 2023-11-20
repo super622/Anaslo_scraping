@@ -240,6 +240,7 @@ def get_store_sub_data_by_date():
         
         cnt += (j + 1)
         empty_position = []
+        print(store_data[2])
     
     global store_sub_data
     store_sub_data = sub_data
