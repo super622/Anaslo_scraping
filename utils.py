@@ -49,7 +49,7 @@ def get_date_of_previous_operation():
         cursor.execute(query)
         date = cursor.fetchone()
         if date is None or len(date) == 0:
-            return datetime(0, 0, 0)
+            return datetime(1111, 1, 1)
         
         date = date[0].strftime('%Y-%m-%d')
         prev_date = date.split('-')
