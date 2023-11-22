@@ -2,6 +2,7 @@ import json
 import pytz
 import requests
 import xlwt
+import xlsxwriter
 import pathlib
 import mysql.connector
 
@@ -294,60 +295,46 @@ def export_json_file():
     return
 
 # export excel file
-def export_csv_file():
+def export_xlsx_file():
     hour = datetime.now(pytz.timezone('Asia/Tokyo')).hour
     minute = datetime.now(pytz.timezone('Asia/Tokyo')).minute
     seconds = datetime.now(pytz.timezone('Asia/Tokyo')).second
 
     document_folder = pathlib.Path.home() / "Documents"
-    filename = f'Anaslo_data_{hour}_{minute}_{seconds}.xls'
+    filename = f'Anaslo_data_{hour}_{minute}_{seconds}.xlsx'
     filepath = document_folder / filename
     
-    with open(filepath, 'wb') as file:
-        wbk = xlwt.Workbook()
-        sheet = wbk.add_sheet("sheet", cell_overwrite_ok=True)
-        style = xlwt.XFStyle()
-        font = xlwt.Font()
-        
-        count = 0
-        if count >= 1000000:
-            wbk.save(filepath)
-            return
-        for region in region_list_data:
-            font.bold = True
-            font.height = 320
-            style.font = font
-            sheet.write(count, 0, region[2], style=style)
-            count += 1
-            for store in store_list_data:
-                font.bold = True
-                font.height = 280
-                style.font = font
-                if store[1] == region[0]:
-                    sheet.write(count, 0, store[3], style=style)
-                    sheet.write(count, 1, store[4], style=style)
-                    count += 1
-                    
-                    for store_data in store_data_by_date:
-                        font.bold = True
-                        font.height = 240
-                        style.font = font
-                        if store_data[1] == store[0]:
-                            for i in range(len(store_data)):
-                                if i < (len(store_data) - 3):
-                                    sheet.write(count, i, store_data[i + 3], style=style)
-                            count += 1
-                        
-                            print(f"sub data => {len(store_sub_data)}")
-                            for sub_data in store_sub_data:
-                                font.height = 240
-                                style.font = font
-                                if sub_data[1] == store_data[0]:
-                                    for i in range(len(sub_data)):
-                                        if i < (len(sub_data) - 2):
-                                            sheet.write(count, i, str(sub_data[i + 2]), style=style)
-                                    count += 1
+    wbk = xlsxwriter.Workbook(filepath)
+    sheet = wbk.add_worksheet()
+    count = 0
+    if count >= 1000000:
         wbk.save(filepath)
+        return
+    
+    for region in region_list_data:
+        sheet.write(count, 0, region[2])
+        count += 1
+        for store in store_list_data:
+            if store[1] == region[0]:
+                sheet.write(count, 0, store[3])
+                sheet.write(count, 1, store[4])
+                count += 1
+                
+                for store_data in store_data_by_date:
+                    if store_data[1] == store[0]:
+                        for i in range(len(store_data)):
+                            if i < (len(store_data) - 3):
+                                sheet.write(count, i, store_data[i + 3])
+                        count += 1
+                    
+                        print(f"sub data => {len(store_sub_data)}")
+                        for sub_data in store_sub_data:
+                            if sub_data[1] == store_data[0]:
+                                for i in range(len(sub_data)):
+                                    if i < (len(sub_data) - 2):
+                                        sheet.write(count, i, str(sub_data[i + 2]))
+                                count += 1
+    wbk.close()
     return
 
 # save data in database

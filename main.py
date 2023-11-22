@@ -65,8 +65,8 @@ class AnaSloData:
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
         
-        # export csv file
-        export_csv_file()
+        # export xlsx file
+        export_xlsx_file()
         print('==================excel export===============')
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
