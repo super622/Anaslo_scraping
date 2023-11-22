@@ -194,6 +194,7 @@ def get_store_sub_data_by_date():
     sub_data = []
     empty_position = []
     for store_data in temp_store_data_by_date:
+        print(store_data[2])
         print('start =================================')
         response = send_request(store_data[2], 'get', {}, {})
 
@@ -209,7 +210,6 @@ def get_store_sub_data_by_date():
         for item in table_header.find_all('th'):
             header_item.append(item.text)
         position = 0
-        print('get header ===========================')
         for i in range(len(header_type)):
             adjusted_index = i - position
             if 0 <= adjusted_index < len(header_item):
@@ -221,7 +221,6 @@ def get_store_sub_data_by_date():
                     empty_position.append(i)
             else:
                 empty_position.append(i)
-        print('empty count =========================')
         table_body = table.find('tbody')
         table_row_data = table_body.find_all('tr')
         
@@ -244,7 +243,6 @@ def get_store_sub_data_by_date():
             
             sub_data.append(data)
             tuple_store_sub_data.append(tuple(data))
-        print('get content ========================')
         cnt += (j + 1)
         empty_position = []
         store_data[2] = ''
@@ -327,7 +325,7 @@ def export_xlsx_file():
                                 sheet.write(count, i, store_data[i + 3])
                         count += 1
                     
-                        print(f"sub data => {len(store_sub_data)}")
+                        print(f"sub data => {count}")
                         for sub_data in store_sub_data:
                             if sub_data[1] == store_data[0]:
                                 for i in range(len(sub_data)):
