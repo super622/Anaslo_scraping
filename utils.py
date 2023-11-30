@@ -351,10 +351,6 @@ def save_data_in_database(type, start_date):
             cursor.execute("TRUNCATE TABLE tbl_store_list")
             cursor.execute("TRUNCATE TABLE tbl_store_data_by_date")
             cursor.execute("TRUNCATE TABLE tbl_model_data")
-
-
-        sql ='SET SESSION max_allowed_packet=500M'
-        cursor.execute(sql)
         
         print('tbl_region')
         query = """INSERT INTO tbl_region (id, url, name) VALUES (%s, %s, %s)"""
