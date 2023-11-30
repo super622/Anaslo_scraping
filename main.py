@@ -53,11 +53,11 @@ class AnaSloData:
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
         
-        # export json file
-        export_json_file()
-        print('==================json export===============')
-        now = datetime.now()
-        print(now.strftime("%H:%M:%S"))
+        # # export json file
+        # export_json_file()
+        # print('==================json export===============')
+        # now = datetime.now()
+        # print(now.strftime("%H:%M:%S"))
         
         # save data in database
         save_data_in_database(type, start_date)
@@ -65,11 +65,11 @@ class AnaSloData:
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
         
-        # export xlsx file
-        export_xlsx_file()
-        print('==================excel export===============')
-        now = datetime.now()
-        print(now.strftime("%H:%M:%S"))
+        # # export xlsx file
+        # export_xlsx_file()
+        # print('==================excel export===============')
+        # now = datetime.now()
+        # print(now.strftime("%H:%M:%S"))
         
         return "Finished"
     

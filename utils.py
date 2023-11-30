@@ -83,6 +83,9 @@ def get_region_data(page_data):
     child_elements = parent_element.find_all('a')
     
     for i in range(len(child_elements)):
+        if i == 1:
+            break
+        
         data = [(i + 1), child_elements[i]['href'], child_elements[i].text]
         region_data.append(data)
         tuple_region_list_data.append(tuple(data))
@@ -115,6 +118,8 @@ def get_list_of_stores():
         
         i = 0
         for i in range(len(table_rows)):
+            if i == 15:
+                break
             table_data = table_rows[i].find_all('div', {'class': 'table-data-cell'})
             data = [(cnt + i + 1), region[0], table_data[0].find('a')['href'], table_data[0].text, table_data[1].text]
             all_store_list.append(data)
@@ -225,7 +230,7 @@ def get_store_sub_data_by_date():
         table_row_data = table_body.find_all('tr')
         
         j = 0
-        for j in range(len(table_row_data)):            
+        for j in range(len(table_row_data)):
             table_td_data = table_row_data[j].find_all('td')
             data = []
             data.append((cnt + j + 1))
@@ -347,22 +352,30 @@ def save_data_in_database(type, start_date):
             cursor.execute("TRUNCATE TABLE tbl_store_data_by_date")
             cursor.execute("TRUNCATE TABLE tbl_model_data")
 
+
+        sql ='SET SESSION max_allowed_packet=500M'
+        cursor.execute(sql)
+        
         print('tbl_region')
         query = """INSERT INTO tbl_region (id, url, name) VALUES (%s, %s, %s)"""
         cursor.executemany(query, tuple_region_list_data)
         cnx.commit()
+        
         print('tbl_store_list')
         query = """INSERT INTO tbl_store_list (id, region_id, url, name, city) VALUES (%s, %s, %s, %s, %s)"""
         cursor.executemany(query, tuple_store_list_data)
         cnx.commit()
+        
         print('tbl_store_data')
         query = """INSERT INTO tbl_store_data_by_date (id, store_id, url, date, total_diff, avg_diff, avg_g_number, winning_rate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
         cursor.executemany(query, tuple_store_data_by_date)
         cnx.commit()
+        
         print('tbl_subdata')
         query = """INSERT INTO tbl_model_data (id, store_data_id, model_name, machine_number, g_number, extra_sheet, bb, rb, art, composite_probability, bb_probability, rb_probability, art_probability) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         cursor.executemany(query, tuple_store_sub_data)
         cnx.commit()
+        
         print('tbl_history')
         query = """INSERT INTO tbl_scraping_history (id, date) VALUES (%s, %s)"""
         cursor.execute(query, (0, start_date))
