@@ -1,7 +1,6 @@
 from multiprocessing import Process
 from flask import Flask
 from flask_cors import CORS
-import json
 
 from main import AnaSloData
 
@@ -9,13 +8,12 @@ app = Flask(__name__)
 CORS(app)
 processes = []
 
-def get_all_data_from_site():
+def get_data_from_site(type):
     anaslo = AnaSloData()
-    result = anaslo.all_data()
-
-def get_latest_data_from_site():
-    anaslo = AnaSloData()
-    result = anaslo.latest_data()
+    if type == 'all_data':
+        result = anaslo.get_all_datas(True)
+    else:
+        result = anaslo.get_all_datas(False)
 
 @app.route("/", methods=["GET"])
 def get_root():
@@ -23,13 +21,13 @@ def get_root():
 
 @app.route("/get_all_data", methods=["POST"])
 def get_all_data():
-    p = Process(target=get_all_data_from_site).start()
+    p = Process(target=get_data_from_site, args=("all_data",)).start()
     processes.append(p)
     return "Running"
 
 @app.route("/get_latest_data", methods=["POST"])
 def get_latest_data():
-    p = Process(target=get_latest_data_from_site).start()
+    p = Process(target=get_data_from_site, args=("latest_data",)).start()
     processes.append(p)
     return "Running"
 

@@ -1,7 +1,6 @@
 import json
 import pytz
 import requests
-import xlwt
 import xlsxwriter
 import pathlib
 import mysql.connector
@@ -32,9 +31,15 @@ def send_request(url, request_type, header, param):
     
     response = None
     if request_type == 'get':
-        response = requests.get(url, params=param, headers=headers)
+        try:
+            response = requests.get(url, params=param, headers=headers)
+        except:
+            return ''
     else:
-        response = requests.post(url, params=param, headers=headers)
+        try:
+            response = requests.post(url, params=param, headers=headers)
+        except:
+            return ''
     
     if response.status_code == 200:
         return response.text
@@ -52,7 +57,7 @@ def get_date_of_previous_operation():
         cursor.execute(query)
         date = cursor.fetchone()
         if date is None or len(date) == 0:
-            return datetime(1111, 1, 1)
+            return ''
         
         date = date[0].strftime('%Y-%m-%d')
         prev_date = date.split('-')
@@ -77,16 +82,14 @@ def parse_html_to_element(html):
 # get region data from page data
 def get_region_data(page_data):
     global tuple_region_list_data
+    tuple_region_list_data = []
     parent_elements = page_data.find_all('div', {'class': 'pref_list'})
     parent_element = parent_elements[1]
     region_data = []
     child_elements = parent_element.find_all('a')
     
     for i in range(len(child_elements)):
-        if i == 1:
-            break
-        
-        data = [(i + 1), child_elements[i]['href'], child_elements[i].text]
+        data = [(i + 8), child_elements[i]['href'], child_elements[i].text]
         region_data.append(data)
         tuple_region_list_data.append(tuple(data))
     
@@ -95,38 +98,38 @@ def get_region_data(page_data):
     return region_data
 
 # get a list of stores from region data
-def get_list_of_stores():
-    global region_list_data
+# def get_list_of_stores():
+def get_list_of_stores(region):
     global tuple_store_list_data
     global store_list_data
-    region_data = region_list_data
+
+    tuple_store_list_data = []
     all_store_list = []
     cnt = 0
     
-    for region in region_data:
-        response = send_request(region[1], 'get', {}, {})
-        page_data = None
-        
-        if response != '':
-            page_data = parse_html_to_element(response)
-        else:
-            return all_store_list
-        
-        table_data = page_data.find('div', {'class': 'hall-list-table'})
-        table_body = table_data.find('div', {'class': 'table-body'})
-        table_rows = table_body.find_all('div', {'class': 'table-row'})
-        
-        i = 0
-        for i in range(len(table_rows)):
-            if i == 15:
-                break
-            table_data = table_rows[i].find_all('div', {'class': 'table-data-cell'})
-            data = [(cnt + i + 1), region[0], table_data[0].find('a')['href'], table_data[0].text, table_data[1].text]
-            all_store_list.append(data)
-            tuple_store_list_data.append(tuple(data))
-        
-        region[1] = ''
-        cnt += (i + 1)
+    # for region in region_data:
+    response = send_request(region[1], 'get', {}, {})
+    page_data = None
+    
+    if response != '':
+        page_data = parse_html_to_element(response)
+    else:
+        return all_store_list
+    
+    table_data = page_data.find('div', {'class': 'hall-list-table'})
+    table_body = table_data.find('div', {'class': 'table-body'})
+    table_rows = table_body.find_all('div', {'class': 'table-row'})
+    
+    i = 0
+    for i in range(len(table_rows)):
+        num = (int(region[0]) - 8) * 10000000
+        table_data = table_rows[i].find_all('div', {'class': 'table-data-cell'})
+        data = [(cnt + i + 1 + num), region[0], table_data[0].find('a')['href'], table_data[0].text, table_data[1].text]
+        all_store_list.append(data)
+        tuple_store_list_data.append(tuple(data))
+    
+    region[1] = ''
+    cnt += (i + 1)
         
     store_list_data = all_store_list
     return all_store_list
@@ -136,11 +139,13 @@ def get_store_data_by_date(prev_date, start_date, type):
     global store_list_data
     global store_data_by_date
     global tuple_store_data_by_date
+    tuple_store_data_by_date = []
     store_list = store_list_data
     
     cnt = 0
     store_data = []
     for store in store_list:
+        num = (int(store[1]) - 8) * 10000000
         print(f"cur store data by date => {store[2]}")
         response = send_request(store[2], 'get', {}, {})
     
@@ -151,24 +156,27 @@ def get_store_data_by_date(prev_date, start_date, type):
             continue
         
         table_data = page_data.find_all('div', {'class': 'table-row'})
-        i = 0
+
         for i in range(len(table_data)):
             table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
             if i == 0:
                 continue
             
             if type == False:
+                if prev_date == '':
+                    break
+                
                 data_date = table_cell_data[0].text
                 data_date = data_date.split('(')[0]
                 data_date = data_date.split('/')
                 data_date = datetime(int(data_date[0]), int(data_date[1]), int(data_date[2]))
                 
-                if start_date == prev_date or data_date < prev_date:
+                if data_date <= prev_date:
                     break
                 
             if table_cell_data[0].find('a') != None:
                 data = [
-                    (cnt + i + 1), 
+                    (cnt + i + 1 + num), 
                     store[0], 
                     table_cell_data[0].find('a')['href'],
                     table_cell_data[0].text,
@@ -181,10 +189,10 @@ def get_store_data_by_date(prev_date, start_date, type):
                 tuple_store_data_by_date.append(tuple(data))
             else:
                 break
-            
+
         cnt += (i + 1)
         store[2] = ''
-        
+
     store_data_by_date = store_data
     return store_data_by_date
 
@@ -192,14 +200,16 @@ def get_store_data_by_date(prev_date, start_date, type):
 def get_store_sub_data_by_date():
     global store_data_by_date
     global tuple_store_sub_data
+    tuple_store_sub_data = []
     temp_store_data_by_date = store_data_by_date
     header_type = ["機種名", "台番号", "G数", "差枚", "BB", "RB", "ART", "合成確率", "BB確率", "RB確率", "ART確率"]
     
     cnt = 0
+    count = 0
     sub_data = []
     empty_position = []
     for store_data in temp_store_data_by_date:
-        print(store_data[2])
+        num = (int(store_data[1]) / 10000000) * 10000000
         print('start =================================')
         response = send_request(store_data[2], 'get', {}, {})
 
@@ -208,6 +218,7 @@ def get_store_sub_data_by_date():
             page_data = parse_html_to_element(response)
         else:
             continue
+        
         print('get page ==============================')
         table = page_data.find('table', {'id': 'all_data_table'})
         table_header = page_data.find('thead')
@@ -229,11 +240,10 @@ def get_store_sub_data_by_date():
         table_body = table.find('tbody')
         table_row_data = table_body.find_all('tr')
         
-        j = 0
         for j in range(len(table_row_data)):
             table_td_data = table_row_data[j].find_all('td')
             data = []
-            data.append((cnt + j + 1))
+            data.append((cnt + j + 1 + num))
             data.append(store_data[0])
             
             for i in range(len(table_td_data)):
@@ -252,6 +262,12 @@ def get_store_sub_data_by_date():
         empty_position = []
         store_data[2] = ''
         print(store_data[2])
+        count += 1
+        if(count == 500):
+            count = 0
+            save_data_in_database(type, '', 'subdata')
+            time.slo
+            tuple_store_sub_data = []
     
     global store_sub_data
     store_sub_data = sub_data
@@ -297,6 +313,53 @@ def export_json_file():
         file.write(data.encode('utf-8'))
     return
 
+# export txt file
+def export_txt_file():
+    global region_list_data
+    global store_list_data
+    global store_data_by_date
+    global store_sub_data
+
+    document_folder = pathlib.Path.home() / "Documents"
+    filename = f'Anaslo_data_region.txt'
+    filepath = document_folder / filename
+    
+    with open(filepath, 'w') as file:
+        for region in region_list_data:
+            for i in range(len(region)):
+                print(str(region[i]))
+                file.write(str(region[i]))
+                file.write('\t')
+            file.write('\n')
+    
+    filename = f'Anaslo_data_store_list.txt'
+    filepath = document_folder / filename
+    with open(filepath, 'wb') as file:
+        for store in store_list_data:
+            for i in range(len(store)):
+                file.write(str(store))
+                file.write('\t')
+            file.write('\n')
+    
+    filename = f'Anaslo_data_store_data.txt'
+    filepath = document_folder / filename
+    with open(filepath, 'wb') as file:
+        for store_data in store_data_by_date:
+            for i in range(len(store_data)):
+                file.write(str(store_data))
+                file.write('\t')
+            file.write('\n')
+
+    filename = f'Anaslo_data_store_model_data.txt'
+    filepath = document_folder / filename
+    with open(filepath, 'wb') as file:
+        for model_data in store_sub_data:
+            for i in range(len(model_data)):
+                file.write(str(model_data))
+                file.write('\t')
+            file.write('\n')
+
+
 # export excel file
 def export_xlsx_file():
     hour = datetime.now(pytz.timezone('Asia/Tokyo')).hour
@@ -341,41 +404,39 @@ def export_xlsx_file():
     return
 
 # save data in database
-def save_data_in_database(type, start_date):
+def save_data_in_database(flag, start_date, save_type):
     cnx = None
     try:
         cnx = mysql.connector.connect(host=conf.DB_HOST, user=conf.DB_USER, password=conf.DB_PWD, database=conf.DB_NAME)
         cursor = cnx.cursor()
-        if type == True:
-            cursor.execute("TRUNCATE TABLE tbl_region")
+        if flag == True:
             cursor.execute("TRUNCATE TABLE tbl_store_list")
             cursor.execute("TRUNCATE TABLE tbl_store_data_by_date")
             cursor.execute("TRUNCATE TABLE tbl_model_data")
         
-        print('tbl_region')
-        query = """INSERT INTO tbl_region (id, url, name) VALUES (%s, %s, %s)"""
-        cursor.executemany(query, tuple_region_list_data)
-        cnx.commit()
+        if(save_type == 'store_list'):
+            print('tbl_store_list')
+            query = """INSERT INTO tbl_store_list (id, region_id, url, name, city) VALUES (%s, %s, %s, %s, %s)"""
+            cursor.executemany(query, tuple_store_list_data)
+            cnx.commit()
+
+        if(save_type == 'store_data'):
+            print('tbl_store_data')
+            query = """INSERT INTO tbl_store_data_by_date (id, store_id, url, date, total_diff, avg_diff, avg_g_number, winning_rate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+            cursor.executemany(query, tuple_store_data_by_date)
+            cnx.commit()
         
-        print('tbl_store_list')
-        query = """INSERT INTO tbl_store_list (id, region_id, url, name, city) VALUES (%s, %s, %s, %s, %s)"""
-        cursor.executemany(query, tuple_store_list_data)
-        cnx.commit()
+        if(save_type == 'subdata'):
+            print('tbl_subdata')
+            query = """INSERT INTO tbl_model_data (id, store_data_id, model_name, machine_number, g_number, extra_sheet, bb, rb, art, composite_probability, bb_probability, rb_probability, art_probability) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            cursor.executemany(query, tuple_store_sub_data)
+            cnx.commit()
         
-        print('tbl_store_data')
-        query = """INSERT INTO tbl_store_data_by_date (id, store_id, url, date, total_diff, avg_diff, avg_g_number, winning_rate) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-        cursor.executemany(query, tuple_store_data_by_date)
-        cnx.commit()
-        
-        print('tbl_subdata')
-        query = """INSERT INTO tbl_model_data (id, store_data_id, model_name, machine_number, g_number, extra_sheet, bb, rb, art, composite_probability, bb_probability, rb_probability, art_probability) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-        cursor.executemany(query, tuple_store_sub_data)
-        cnx.commit()
-        
-        print('tbl_history')
-        query = """INSERT INTO tbl_scraping_history (id, date) VALUES (%s, %s)"""
-        cursor.execute(query, (0, start_date))
-        cnx.commit()
+        if(save_type == 'history'):
+            print('tbl_history')
+            query = """INSERT INTO tbl_scraping_history (id, date) VALUES (%s, %s)"""
+            cursor.execute(query, (0, start_date))
+            cnx.commit()
         
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
