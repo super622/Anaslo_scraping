@@ -10,6 +10,7 @@ import conf
 from datetime import datetime
 from mysql.connector import errorcode
 from bs4 import BeautifulSoup
+import time
 
 region_list_data = []
 store_list_data = []
@@ -263,10 +264,10 @@ def get_store_sub_data_by_date():
         store_data[2] = ''
         print(store_data[2])
         count += 1
-        if(count == 500):
+        if(count == 300):
             count = 0
             save_data_in_database(type, '', 'subdata')
-            time.slo
+            time.sleep(3)
             tuple_store_sub_data = []
     
     global store_sub_data
