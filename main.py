@@ -38,7 +38,8 @@ class AnaSloData:
         
         for region in region_data:
             print(f"start => {region}")
-            self.process.append(Process(target=self.get_store_info, args=(region, start_date, prev_date, type)).start())
+            self.get_store_info(region, start_date, prev_date, type)
+            # self.process.append(Process(target=self.get_store_info, args=(region, start_date, prev_date, type)).start())
         
         return "Finished"
     

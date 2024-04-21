@@ -57,6 +57,7 @@ def get_date_of_previous_operation():
         query = """SELECT date FROM tbl_scraping_history ORDER BY id DESC LIMIT 1"""
         cursor.execute(query)
         date = cursor.fetchone()
+        
         if date is None or len(date) == 0:
             return ''
         
@@ -90,9 +91,10 @@ def get_region_data(page_data):
     child_elements = parent_element.find_all('a')
     
     for i in range(len(child_elements)):
-        data = [(i + 8), child_elements[i]['href'], child_elements[i].text]
-        region_data.append(data)
-        tuple_region_list_data.append(tuple(data))
+        if(i == 1):
+            data = [(i + 8), child_elements[i]['href'], child_elements[i].text]
+            region_data.append(data)
+            tuple_region_list_data.append(tuple(data))
     
     global region_list_data
     region_list_data = region_data
@@ -164,13 +166,13 @@ def get_store_data_by_date(prev_date, start_date, type):
                 continue
             
             if type == False:
-                if prev_date == '':
-                    break
-                
                 data_date = table_cell_data[0].text
                 data_date = data_date.split('(')[0]
                 data_date = data_date.split('/')
                 data_date = datetime(int(data_date[0]), int(data_date[1]), int(data_date[2]))
+
+                if prev_date == '' or data_date == '':
+                    break
                 
                 if data_date <= prev_date:
                     break
@@ -194,6 +196,10 @@ def get_store_data_by_date(prev_date, start_date, type):
         cnt += (i + 1)
         store[2] = ''
 
+        # save_data_in_database(type, '', 'store_data')
+        # time.sleep(3)
+        # tuple_store_data_by_date = []
+
     store_data_by_date = store_data
     return store_data_by_date
 
@@ -212,6 +218,7 @@ def get_store_sub_data_by_date():
     for store_data in temp_store_data_by_date:
         num = (int(store_data[1]) / 10000000) * 10000000
         print('start =================================')
+        print(store_data[2])
         response = send_request(store_data[2], 'get', {}, {})
 
         page_data = None
@@ -256,15 +263,15 @@ def get_store_sub_data_by_date():
                     data.insert((i + 2), '')
                 else:
                     data.append('')
-            
             sub_data.append(data)
             tuple_store_sub_data.append(tuple(data))
         cnt += (j + 1)
         empty_position = []
         store_data[2] = ''
-        print(store_data[2])
         count += 1
-        if(count == 300):
+        print(count)
+        if(count == 100):
+            print(tuple_store_sub_data)
             count = 0
             save_data_in_database(type, '', 'subdata')
             time.sleep(3)
