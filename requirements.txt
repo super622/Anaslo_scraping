@@ -9,4 +9,3 @@ pathlib
 BeautifulSoup4
 mysql-connector-python
 xlsxwriter
-multiprocessing

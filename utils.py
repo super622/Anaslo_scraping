@@ -43,7 +43,10 @@ def send_request(url, request_type, header, param):
             return ''
     
     if response.status_code == 200:
-        return response.text
+        try:
+            return response.text
+        except:
+            return ''
     else:
         return ''
 
@@ -91,7 +94,7 @@ def get_region_data(page_data):
     child_elements = parent_element.find_all('a')
     
     for i in range(len(child_elements)):
-        if(i == 1):
+        if(i == 4):
             data = [(i + 8), child_elements[i]['href'], child_elements[i].text]
             region_data.append(data)
             tuple_region_list_data.append(tuple(data))
@@ -196,9 +199,9 @@ def get_store_data_by_date(prev_date, start_date, type):
         cnt += (i + 1)
         store[2] = ''
 
-        # save_data_in_database(type, '', 'store_data')
-        # time.sleep(3)
-        # tuple_store_data_by_date = []
+        save_data_in_database(type, '', 'store_data')
+        time.sleep(3)
+        tuple_store_data_by_date = []
 
     store_data_by_date = store_data
     return store_data_by_date
@@ -270,13 +273,12 @@ def get_store_sub_data_by_date():
         store_data[2] = ''
         count += 1
         print(count)
-        if(count == 100):
-            print(tuple_store_sub_data)
+        if(count >= 50):
             count = 0
             save_data_in_database(type, '', 'subdata')
             time.sleep(3)
             tuple_store_sub_data = []
-    
+
     global store_sub_data
     store_sub_data = sub_data
     return store_sub_data
