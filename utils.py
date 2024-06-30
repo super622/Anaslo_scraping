@@ -174,6 +174,8 @@ def get_store_data_by_date(prev_date, start_date, type):
                 data_date = data_date.split('/')
                 data_date = datetime(int(data_date[0]), int(data_date[1]), int(data_date[2]))
 
+                print(prev_date)
+                print(data_date)
                 if prev_date == '' or data_date == '':
                     break
                 
