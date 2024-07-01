@@ -44,6 +44,12 @@ class AnaSloData:
         return "Finished"
     
     def get_store_info(self, region, start_date, prev_date, type):
+        # save history in database
+        save_data_in_database(type, start_date, 'history')
+        print('==================save data in database===============')
+        now = datetime.now()
+        print(now.strftime("%H:%M:%S"))
+
         # get a list of stores in region
         store_list = get_list_of_stores(region)
         print('==================store list===============')
@@ -67,37 +73,13 @@ class AnaSloData:
 
         # save data in database
         save_data_in_database(type, start_date, 'store_data')
-        print('==================save data ind database===============')
+        print('==================save data in database===============')
         now = datetime.now()
         print(now.strftime("%H:%M:%S"))
         
         # get store sub data by date
-        store_sub_data = get_store_sub_data_by_date()
-        print('==================get store sub data by date===============')
-        now = datetime.now()
-        print(now.strftime("%H:%M:%S"))
-
-        # #  export json file
-        # export_txt_file()
-        # print('==================json export===============')
-        # now = datetime.now()
-        # print(now.strftime("%H:%M:%S"))
-        
-        # # export json file
-        # export_json_file()
-        # print('==================json export===============')
-        # now = datetime.now()
-        # print(now.strftime("%H:%M:%S"))
-        
-        # save data in database
-        save_data_in_database(type, start_date, 'history')
-        print('==================save data ind database===============')
-        now = datetime.now()
-        print(now.strftime("%H:%M:%S"))
-        
-        # # export xlsx file
-        # export_xlsx_file()
-        # print('==================excel export===============')
+        # store_sub_data = get_store_sub_data_by_date()
+        # print('==================get store sub data by date===============')
         # now = datetime.now()
         # print(now.strftime("%H:%M:%S"))
         

@@ -1,4 +1,3 @@
-import json
 import pytz
 import requests
 import xlsxwriter
@@ -94,17 +93,15 @@ def get_region_data(page_data):
     child_elements = parent_element.find_all('a')
     
     for i in range(len(child_elements)):
-        if(i == 0):
-            data = [(i + 8), child_elements[i]['href'], child_elements[i].text]
-            region_data.append(data)
-            tuple_region_list_data.append(tuple(data))
+        data = [(i + 8), child_elements[i]['href'], child_elements[i].text]
+        region_data.append(data)
+        tuple_region_list_data.append(tuple(data))
     
     global region_list_data
     region_list_data = region_data
     return region_data
 
 # get a list of stores from region data
-# def get_list_of_stores():
 def get_list_of_stores(region):
     global tuple_store_list_data
     global store_list_data
@@ -148,10 +145,9 @@ def get_store_data_by_date(prev_date, start_date, type):
     tuple_store_data_by_date = []
     store_list = store_list_data
     
-    cnt = 0
+    lastPosition = round(time.time() * 1000)
     store_data = []
     for store in store_list:
-        num = (int(store[1]) - 8) * 10000000
         print(f"cur store data by date => {store[2]}")
         response = send_request(store[2], 'get', {}, {})
     
@@ -182,7 +178,7 @@ def get_store_data_by_date(prev_date, start_date, type):
                 
             if table_cell_data[0].find('a') != None:
                 data = [
-                    (cnt + i + 1 + num), 
+                    (lastPosition + i), 
                     store[0], 
                     table_cell_data[0].find('a')['href'],
                     table_cell_data[0].text,
@@ -191,12 +187,12 @@ def get_store_data_by_date(prev_date, start_date, type):
                     table_cell_data[3].text,
                     table_cell_data[4].text
                 ]
+                get_store_sub_data_by_date(data)
                 store_data.append(data)
                 tuple_store_data_by_date.append(tuple(data))
             else:
                 break
 
-        cnt += (i + 1)
         store[2] = ''
 
         save_data_in_database(type, '', 'store_data')
@@ -207,73 +203,65 @@ def get_store_data_by_date(prev_date, start_date, type):
     return store_data_by_date
 
 # get sub data from data by date
-def get_store_sub_data_by_date():
-    global store_data_by_date
+def get_store_sub_data_by_date(store_data_by_date):
     global tuple_store_sub_data
     tuple_store_sub_data = []
-    temp_store_data_by_date = store_data_by_date
     header_type = ["機種名", "台番号", "G数", "差枚", "BB", "RB", "ART", "合成確率", "BB確率", "RB確率", "ART確率"]
     
-    cnt = 0
     count = 0
     sub_data = []
     empty_position = []
-    for store_data in temp_store_data_by_date:
-        num = (int(store_data[1]) / 10000000) * 10000000
-        print('start =================================')
-        print(store_data[2])
-        response = send_request(store_data[2], 'get', {}, {})
 
-        page_data = None
-        if response != '':
-            page_data = parse_html_to_element(response)
-        else:
-            continue
-        
-        print('get page ==============================')
-        table = page_data.find('table', {'id': 'all_data_table'})
-        table_header = page_data.find('thead')
-        header_item = []
-        for item in table_header.find_all('th'):
-            header_item.append(item.text)
-        position = 0
-        for i in range(len(header_type)):
-            adjusted_index = i - position
-            if 0 <= adjusted_index < len(header_item):
-                if header_item[adjusted_index] is not None:
-                    if header_type[i] != header_item[adjusted_index]:
-                        empty_position.append(i)
-                        position += 1
-                else:
+    response = send_request(store_data_by_date[2], 'get', {}, {})
+
+    page_data = None
+    if response != '':
+        page_data = parse_html_to_element(response)
+    else:
+        return
+    
+    print('get page ==============================')
+    table = page_data.find('table', {'id': 'all_data_table'})
+    table_header = page_data.find('thead')
+    header_item = []
+    for item in table_header.find_all('th'):
+        header_item.append(item.text)
+    position = 0
+    for i in range(len(header_type)):
+        adjusted_index = i - position
+        if 0 <= adjusted_index < len(header_item):
+            if header_item[adjusted_index] is not None:
+                if header_type[i] != header_item[adjusted_index]:
                     empty_position.append(i)
+                    position += 1
             else:
                 empty_position.append(i)
-        table_body = table.find('tbody')
-        table_row_data = table_body.find_all('tr')
+        else:
+            empty_position.append(i)
+    table_body = table.find('tbody')
+    table_row_data = table_body.find_all('tr')
+    
+    for j in range(len(table_row_data)):
+        table_td_data = table_row_data[j].find_all('td')
+        data = []
+        data.append(round(time.time() * 1000) + j)
+        data.append(store_data_by_date[0])
         
-        for j in range(len(table_row_data)):
-            table_td_data = table_row_data[j].find_all('td')
-            data = []
-            data.append((cnt + j + 1 + num))
-            data.append(store_data[0])
-            
-            for i in range(len(table_td_data)):
-                data.append(table_td_data[i].text)
-            length = len(data)
-            
-            for i in empty_position:
-                if((i + 2) < length):
-                    data.insert((i + 2), '')
-                else:
-                    data.append('')
-            sub_data.append(data)
-            tuple_store_sub_data.append(tuple(data))
-        cnt += (j + 1)
-        empty_position = []
-        store_data[2] = ''
+        for i in range(len(table_td_data)):
+            data.append(table_td_data[i].text)
+        length = len(data)
+        
+        for i in empty_position:
+            if((i + 2) < length):
+                data.insert((i + 2), '')
+            else:
+                data.append('')
+        sub_data.append(data)
+        print(data)
+        tuple_store_sub_data.append(tuple(data))
+
         count += 1
-        print(count)
-        if(count == 50):
+        if(count == 100 or j == len(table_row_data)):
             count = 0
             save_data_in_database(type, '', 'subdata')
             time.sleep(10)
@@ -283,135 +271,80 @@ def get_store_sub_data_by_date():
     store_sub_data = sub_data
     return store_sub_data
 
-# export json file
-def export_json_file():
-    hour = datetime.now(pytz.timezone('Asia/Tokyo')).hour
-    minute = datetime.now(pytz.timezone('Asia/Tokyo')).minute
-    seconds = datetime.now(pytz.timezone('Asia/Tokyo')).second
 
-    document_folder = pathlib.Path.home() / "Documents"
-    filename = f'Anaslo_data_{hour}_{minute}_{seconds}.json'
-    filepath = document_folder / filename
+# def get_store_sub_data_by_date():
+#     global store_data_by_date
+#     global tuple_store_sub_data
+#     tuple_store_sub_data = []
+#     temp_store_data_by_date = store_data_by_date
+#     header_type = ["機種名", "台番号", "G数", "差枚", "BB", "RB", "ART", "合成確率", "BB確率", "RB確率", "ART確率"]
     
-    with open(filepath, 'wb') as file:
-        total_data = {}
-        for region in region_list_data:
-            if region[2] not in total_data:
-                print(region[2])
-                total_data[region[0]] = {'region_name': region[2], 'store_list': [], 'store_data': [], 'sub_data': []}
-            for store in store_list_data:
-                if store[1] == region[0]:
-                    total_data[region[0]]['store_list'].append(store)
-                    
-                    for store_data in store_data_by_date:
-                        if store_data[1] == store[0]:
-                            temp = []
-                            for i in range(len(store_data)):
-                                if i < (len(store_data) - 3):
-                                    temp.append(store_data[i + 3])
-                            total_data[region[0]]['store_data'].append(temp)
-                        
-                            print(f"sub data => {len(store_sub_data)}")
-                            for sub_data in store_sub_data:
-                                if sub_data[1] == store_data[0]:
-                                    temp1 = []
-                                    for i in range(len(sub_data)):
-                                        if i < (len(sub_data) - 2):
-                                            temp1.append(sub_data[i + 2])
-                                    total_data[region[0]]['sub_data'].append(temp1)
-        data = json.dumps(total_data, indent=2)
-        file.write(data.encode('utf-8'))
-    return
+#     cnt = 0
+#     count = 0
+#     sub_data = []
+#     empty_position = []
+#     for store_data in temp_store_data_by_date:
+#         num = (int(store_data[1]) / 10000000) * 10000000
+#         response = send_request(store_data[2], 'get', {}, {})
 
-# export txt file
-def export_txt_file():
-    global region_list_data
-    global store_list_data
-    global store_data_by_date
-    global store_sub_data
+#         page_data = None
+#         if response != '':
+#             page_data = parse_html_to_element(response)
+#         else:
+#             continue
+        
+#         print('get page ==============================')
+#         table = page_data.find('table', {'id': 'all_data_table'})
+#         table_header = page_data.find('thead')
+#         header_item = []
+#         for item in table_header.find_all('th'):
+#             header_item.append(item.text)
+#         position = 0
+#         for i in range(len(header_type)):
+#             adjusted_index = i - position
+#             if 0 <= adjusted_index < len(header_item):
+#                 if header_item[adjusted_index] is not None:
+#                     if header_type[i] != header_item[adjusted_index]:
+#                         empty_position.append(i)
+#                         position += 1
+#                 else:
+#                     empty_position.append(i)
+#             else:
+#                 empty_position.append(i)
+#         table_body = table.find('tbody')
+#         table_row_data = table_body.find_all('tr')
+        
+#         for j in range(len(table_row_data)):
+#             table_td_data = table_row_data[j].find_all('td')
+#             data = []
+#             data.append((cnt + j + 1 + num))
+#             data.append(store_data[0])
+            
+#             for i in range(len(table_td_data)):
+#                 data.append(table_td_data[i].text)
+#             length = len(data)
+            
+#             for i in empty_position:
+#                 if((i + 2) < length):
+#                     data.insert((i + 2), '')
+#                 else:
+#                     data.append('')
+#             sub_data.append(data)
+#             tuple_store_sub_data.append(tuple(data))
+#         cnt += (j + 1)
+#         empty_position = []
+#         store_data[2] = ''
+#         count += 1
 
-    document_folder = pathlib.Path.home() / "Documents"
-    filename = f'Anaslo_data_region.txt'
-    filepath = document_folder / filename
-    
-    with open(filepath, 'w') as file:
-        for region in region_list_data:
-            for i in range(len(region)):
-                print(str(region[i]))
-                file.write(str(region[i]))
-                file.write('\t')
-            file.write('\n')
-    
-    filename = f'Anaslo_data_store_list.txt'
-    filepath = document_folder / filename
-    with open(filepath, 'wb') as file:
-        for store in store_list_data:
-            for i in range(len(store)):
-                file.write(str(store))
-                file.write('\t')
-            file.write('\n')
-    
-    filename = f'Anaslo_data_store_data.txt'
-    filepath = document_folder / filename
-    with open(filepath, 'wb') as file:
-        for store_data in store_data_by_date:
-            for i in range(len(store_data)):
-                file.write(str(store_data))
-                file.write('\t')
-            file.write('\n')
+#         if(count == 50):
+#             count = 0
+#             save_data_in_database(type, '', 'subdata')
+#             time.sleep(10)
+#             tuple_store_sub_data = []
 
-    filename = f'Anaslo_data_store_model_data.txt'
-    filepath = document_folder / filename
-    with open(filepath, 'wb') as file:
-        for model_data in store_sub_data:
-            for i in range(len(model_data)):
-                file.write(str(model_data))
-                file.write('\t')
-            file.write('\n')
-
-
-# export excel file
-def export_xlsx_file():
-    hour = datetime.now(pytz.timezone('Asia/Tokyo')).hour
-    minute = datetime.now(pytz.timezone('Asia/Tokyo')).minute
-    seconds = datetime.now(pytz.timezone('Asia/Tokyo')).second
-
-    document_folder = pathlib.Path.home() / "Documents"
-    filename = f'Anaslo_data_{hour}_{minute}_{seconds}.xlsx'
-    filepath = document_folder / filename
-    
-    wbk = xlsxwriter.Workbook(filepath)
-    sheet = wbk.add_worksheet()
-    count = 0
-    if count >= 1000000:
-        wbk.save(filepath)
-        return
-    
-    for region in region_list_data:
-        sheet.write(count, 0, region[2])
-        count += 1
-        for store in store_list_data:
-            if store[1] == region[0]:
-                sheet.write(count, 0, store[3])
-                sheet.write(count, 1, store[4])
-                count += 1
-                
-                for store_data in store_data_by_date:
-                    if store_data[1] == store[0]:
-                        for i in range(len(store_data)):
-                            if i < (len(store_data) - 3):
-                                sheet.write(count, i, store_data[i + 3])
-                        count += 1
-                    
-                        print(f"sub data => {count}")
-                        for sub_data in store_sub_data:
-                            if sub_data[1] == store_data[0]:
-                                for i in range(len(sub_data)):
-                                    if i < (len(sub_data) - 2):
-                                        sheet.write(count, i, str(sub_data[i + 2]))
-                                count += 1
-    wbk.close()
-    return
+#     global store_sub_data
+#     store_sub_data = sub_data
+#     return store_sub_data
 
 # save data in database
 def save_data_in_database(flag, start_date, save_type):
