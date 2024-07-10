@@ -145,7 +145,6 @@ def get_store_data_by_date(prev_date, start_date, type):
     tuple_store_data_by_date = []
     store_list = store_list_data
     
-    lastPosition = round(time.time() * 1000)
     store_data = []
     for store in store_list:
         print(f"cur store data by date => {store[2]}")
@@ -160,6 +159,7 @@ def get_store_data_by_date(prev_date, start_date, type):
         table_data = page_data.find_all('div', {'class': 'table-row'})
 
         for i in range(len(table_data)):
+            lastPosition = round(time.time() * 1000)
             table_cell_data = table_data[i].find_all('div', {'class': 'table-data-cell'})
             if i == 0:
                 continue
@@ -261,7 +261,7 @@ def get_store_sub_data_by_date(store_data_by_date):
         tuple_store_sub_data.append(tuple(data))
 
         count += 1
-        if(count == 100 or j == len(table_row_data)):
+        if(count == 100 or j == len(table_row_data) - 1):
             count = 0
             save_data_in_database(type, '', 'subdata')
             time.sleep(10)
